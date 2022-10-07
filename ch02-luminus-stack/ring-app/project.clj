@@ -6,6 +6,7 @@
   :dependencies [[org.clojure/clojure "1.10.3"]
                  [ring "1.9.6"]
                  [metosin/ring-http-response "0.9.3"]
-                 [metosin/muuntaja "0.6.8"]]
+                 [metosin/muuntaja "0.6.8"]
+                 [metosin/reitit "0.5.18"]]
   :repl-options {:init-ns ring-app.core}
   :main ring-app.core)
