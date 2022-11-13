@@ -56,9 +56,7 @@
   (.addShutdownHook (Runtime/getRuntime) (Thread. stop-app)))
 
 (defn -main [& args]
-  (-> args
-                            (parse-opts cli-options)
-                            (mount/start-with-args #'guestbook.config/env))
+  (mount/start #'guestbook.config/env)
   (cond
     (nil? (:database-url env))
     (do
