@@ -33,11 +33,12 @@
                  [selmer "1.12.31"]
                  [org.clojure/clojurescript "1.11.60" :scope "provided"]
                  [reagent "1.0.0"]
-                 [cljs-ajax "0.8.4"]]
+                 [cljs-ajax "0.8.4"]
+                 [re-frame "1.1.2"]]
 
   :min-lein-version "2.0.0"
 
-  :source-paths ["src/clj"]
+  :source-paths ["src/clj" "src/cljc"]
   :test-paths ["test/clj"]
   :resource-paths ["resources" "target/cljsbuild"]
   :target-path "target/%s/"
@@ -76,7 +77,7 @@
 
   :cljsbuild
   {:builds
-   {:app {:source-paths ["src/cljs"]
+   {:app {:source-paths ["src/cljs" "src/cljc"]
           :compiler {:output-to "target/cljsbuild/public/js/app.js"
                      :output-dir "target/cljsbuild/public/js/out"
                      :main "guestbook.core"

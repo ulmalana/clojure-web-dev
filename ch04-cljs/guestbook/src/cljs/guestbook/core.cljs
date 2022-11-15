@@ -2,7 +2,9 @@
   (:require [reagent.core :as r]
             [reagent.dom :as dom]
             [ajax.core :refer [GET POST]]
-            [clojure.string :as string]))
+            [clojure.string :as string]
+            [guestbook.validation :refer [validate-message]]
+            [re-frame.core :as rf]))
 
 ;; (-> (.getElementById js/document "content")
 ;;     (.-innerHTML)
@@ -14,19 +16,65 @@
 ;;  ;; [:div#hello.content>h1 "Halo from Reagent"]
 ;;  (.getElementById js/document "content"))
 
-(defn send-message! [fields errors]
-  (POST "/message"
+(rf/reg-event-fx
+ :app/initialize
+ (fn [_ _]
+   {:db {:messages/loading? true}}))
+
+(rf/reg-sub
+ :messages/loading?
+ (fn [db _]
+   (:messages/loading? db)))
+
+(rf/reg-event-db
+ :messages/set
+ (fn [db [_ messages]]
+   (-> db
+       (assoc :messages/loading? false
+              :messages/list messages))))
+
+(rf/reg-sub
+ :messages/list
+ (fn [db _]
+   (:messages/list db [])))
+
+(rf/reg-event-db
+ :message/add
+ (fn [db [_ message]]
+   (update db :messages/list conj message)))
+
+(defn get-messages [messages]
+  (GET "/messages"
+       {:headers {"Accept" "application/transit+json"}
+        :handler #(rf/dispatch [:messages/set (:messages %)])}))
+
+(defn message-list [messages]
+  (println messages)
+  [:ul.messages
+   (for [{:keys [timestamp message name]} @messages]
+     ^{:key timestamp}
+     [:li
+      [:time (.toLocaleString timestamp)]
+      [:p message]
+      [:p " - " name]])])
+
+(defn send-message! [fields errors messages]
+  (if-let [validation-errors (validate-message @fields)]
+    (reset! errors validation-errors)
+    (POST "/message"
         {:format :json
          :headers
          {"Accept" "application/transit+json"
           "x-csrf-token" (.-value (.getElementById js/document "token"))}
          :params @fields
-         :handler (fn [r]
-                    (.log js/console (str "response:" r))
+         :handler (fn [_]
+                    (rf/dispatch
+                     [:message/add (assoc @fields :timestamp (js/Date.))])
+                    (reset! fields nil)
                     (reset! errors nil))
          :error-handler (fn [e]
                           (.log js/console (str e))
-                          (reset! errors (-> e :response :errors)))}))
+                          (reset! errors (-> e :response :errors)))})))
 
 (defn errors-component [errors id]
   (when-let [error (id @errors)]
@@ -37,8 +85,8 @@
         errors (r/atom nil)]
     (fn []
       [:div
-       [:p "Name: " (:name @fields)]
-       [:p "Message: " (:message @fields)]
+       ;;[:p "Name: " (:name @fields)]
+       ;;[:p "Message: " (:message @fields)]
        [errors-component errors :server-error]
        [:div.field
         [:label.label {:for :name} "Name"]
@@ -64,9 +112,19 @@
 
 
 (defn home []
-  [:div.content>div.columns.is-centered>div.column.is-two-thirds
-   [:div.columns>div.column
-    [message-form]]])
+  (let [messages (rf/subscribe [:messages/list])]
+    (rf/dispatch [:app/initialize])
+    (get-messages)
+    (fn []
+      [:div.content>div.columns.is-centered>div.column.is-two-thirds
+       (if @(rf/subscribe [:messages/loading?])
+         [:h3 "Loading messages..."]
+         [:div
+          [:div.columns>div.column
+           [:h3 "Messages"]
+           [message-list messages]]
+          [:div.columns>div.column
+           [message-form]]])])))
 
 (dom/render
  [home]
