@@ -22,10 +22,10 @@
     (is (= 1 (db/save-message!
               t-conn
               {:name "Bob"
-               :message "hello this is bob"}
+               :message "Halo halo"}
               {:connection t-conn})))
     (is (= {:name "Bob"
-            :message "hello this is bob"}
+            :message "Halo halo"}
            (-> (db/get-messages t-conn {})
                (first)
                (select-keys [:name :message]))))))

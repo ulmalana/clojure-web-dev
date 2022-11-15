@@ -8,6 +8,15 @@
    [ring.util.http-response :as response]
    [struct.core :as st]))
 
+(defn home-page [{:keys [flash] :as request}]
+  (layout/render request "home.html" (merge {:messages (db/get-messages)}
+                                             (select-keys flash [:name
+                                                                 :message
+                                                                 :errors]))))
+
+(defn about-page [request]
+  (layout/render request "about.html"))
+
 (def message-schema
   [[:name
     st/required
@@ -17,16 +26,6 @@
     st/string
     {:message "message must contain at least 10 characters"
      :validate (fn [msg] (>= (count msg) 10))}]])
-
-(defn home-page [{:keys [flash] :as request}]
-  (layout/render
-   request
-   "home.html"
-   (merge {:messages (db/get-messages)}
-          (select-keys flash [:name :message :errors]))))
-
-(defn about-page [request]
-  (layout/render request "about.html"))
 
 (defn validate-message [params]
   (first (st/validate params message-schema)))
@@ -41,9 +40,8 @@
         (response/internal-server-error
          {:errors {:server-error ["Failed to save message!"]}})))))
 
-
 (defn home-routes []
-  [ ""
+  [""
    {:middleware [middleware/wrap-csrf
                  middleware/wrap-formats]}
    ["/" {:get home-page}]

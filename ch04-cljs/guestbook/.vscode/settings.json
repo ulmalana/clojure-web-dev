@@ -21,9 +21,9 @@
     ],
     "calva.replConnectSequences": [
                 {
-            "name": "guestbook Server",
+            "name": "Server only - guestbook",
             "projectType": "Leiningen",
-            "afterCLJReplJackInCode": "(in-ns 'user) (start) (println \"Access the server at http://localhost:3000\")",
+            "afterCLJReplJackInCode": "(in-ns 'user) (start)",
             "cljsType": "none",
             "menuSelections": {
                 "leinProfiles": [

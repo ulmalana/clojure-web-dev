@@ -4,6 +4,16 @@
             [ajax.core :refer [GET POST]]
             [clojure.string :as string]))
 
+;; (-> (.getElementById js/document "content")
+;;     (.-innerHTML)
+;;     (set! "Halo Riz. This is auto"))
+
+;; (dom/render
+;;  [:div {:id "hello", :class "content"} [:h1 "Halo from Reagent"]]
+;;  ;; shorter version
+;;  ;; [:div#hello.content>h1 "Halo from Reagent"]
+;;  (.getElementById js/document "content"))
+
 (defn send-message! [fields errors]
   (POST "/message"
         {:format :json
@@ -12,7 +22,7 @@
           "x-csrf-token" (.-value (.getElementById js/document "token"))}
          :params @fields
          :handler (fn [r]
-                    (.log js/console (str "response: " r))
+                    (.log js/console (str "response:" r))
                     (reset! errors nil))
          :error-handler (fn [e]
                           (.log js/console (str e))
@@ -29,7 +39,7 @@
       [:div
        [:p "Name: " (:name @fields)]
        [:p "Message: " (:message @fields)]
-       [:errors-component errors :server-error]
+       [errors-component errors :server-error]
        [:div.field
         [:label.label {:for :name} "Name"]
         [errors-component errors :name]
@@ -52,6 +62,7 @@
          :on-click #(send-message! fields errors)
          :value "comment"}]])))
 
+
 (defn home []
   [:div.content>div.columns.is-centered>div.column.is-two-thirds
    [:div.columns>div.column
@@ -60,11 +71,3 @@
 (dom/render
  [home]
  (.getElementById js/document "content"))
-
-;; (dom/render
-;;  [:div {:id "hello", :class "content"} [:h1 "Halo Reagent"]]
-;;  (.getElementById js/document "content"))
-
-;; (-> (.getElementById js/document "content")
-;;     (.-innerHTML)
-;;     (set! "Halo Riz, this is auto 3"))
