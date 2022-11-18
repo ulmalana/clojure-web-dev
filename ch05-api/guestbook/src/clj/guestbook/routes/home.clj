@@ -1,7 +1,7 @@
 (ns guestbook.routes.home
   (:require
    [guestbook.layout :as layout]
-   [guestbook.middleware :as middleware]
+   [guestbook.middleware :as middleware]))
 
 (defn home-page [request]
   (layout/render request "home.html"))
