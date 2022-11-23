@@ -16,6 +16,14 @@
     (apply send-fn args)
     (throw (ex-info "Couldnt send message, channel isnt open" {:message (first args)}))))
 
+(rf/reg-fx
+ :ws/send!
+ (fn [{:keys [message timeout callback-event]
+       :or {timeout 30000}}]
+   (if callback-event
+     (send! message timeout #(rf/dispatch (conj callback-event %)))
+     (send! message))))
+
 (defonce channel (atom nil))
 
 ;; (defn connect! [url receive-handler]
