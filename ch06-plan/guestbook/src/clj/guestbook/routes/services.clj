@@ -10,7 +10,9 @@
             [reitit.ring.middleware.exception :as exception]
             [reitit.ring.middleware.multipart :as multipart]
             [reitit.ring.middleware.parameters :as parameters]
-            [guestbook.middleware.formats :as formats]))
+            [guestbook.middleware.formats :as formats]
+            [guestbook.auth :as auth]
+            [spec-tools.data-spec :as ds]))
 
 (defn service-routes []
   ["/api"
@@ -66,4 +68,71 @@
                      ;; else
                      (response/internal-server-error
                       {:errors
-                       {:server-error ["Failed to save message"]}}))))))}}]])
+                       {:server-error ["Failed to save message"]}}))))))}}]
+   ["/login"
+    {:post {:parameters
+            {:body {:login string?
+                    :password string?}}
+            :responses
+            {200
+             {:body
+              {:identity {:login string?
+                          :created_at inst?}}}
+             401
+             {:body
+              {:message string?}}}
+            :handler
+            (fn [{{{:keys [login password]} :body} :parameters
+                  session :session}]
+              (if-some [user (auth/authenticate-user login password)]
+                (->
+                 (response/ok
+                  {:identity user})
+                 (assoc :session (assoc session :identity user)))
+                (response/unauthorized
+                 {:message "Incorrect login or password"})))}}]
+   ["/register"
+    {:post {:parameters
+            {:body {:login string?
+                    :password string?
+                    :confirm string?}}
+            :responses
+            {200
+             {:body {:message string?}}
+             400
+             {:body {:message string?}}
+             409
+             {:body {:message string?}}}
+            :handler
+            (fn [{{{:keys [login password confirm]} :body} :parameters}]
+              (if-not (= password confirm)
+                (response/bad-request
+                 {:message "Password and confirm do not match."})
+                (try
+                  (auth/create-user! login password)
+                  (response/ok
+                   {:message "User registration successful. Please log in."})
+                  (catch clojure.lang.ExceptionInfo e
+                    (if (= (:guestbook/error-id (ex-data e))
+                           ::auth/duplicate-user)
+                      (response/conflict
+                       {:message "Registration failed. User with login already exists"})
+                      (throw e))))))}}]
+   ["/logout"
+    {:post {:handler
+            (fn [_]
+              (-> (response/ok)
+                  (assoc :session nil)))}}]
+   ["/session"
+    {:get {:responses
+           {200
+            {:body {:session
+                    {:identity
+                     (ds/maybe {:login string?
+                                :created_at inst?})}}}}
+           :handler
+           (fn [{{:keys [identity]} :session}]
+             (response/ok {:session
+                           {:identity
+                            (not-empty
+                             (select-keys identity [:login :created_at]))}}))}}]])
