@@ -3,7 +3,8 @@
             [reagent.core :as r]
             [re-frame.core :as rf]
             [guestbook.modals :as m]
-            [ajax.core :refer [POST]]))
+            [ajax.core :refer [POST]]
+            [reitit.frontend.easy :as rtfe]))
 
 (rf/reg-event-fx
  :session/load
@@ -105,7 +106,9 @@
    "Log out"])
 
 (defn nameplate [{:keys [login]}]
-  [:button.button.is-primary login])
+  [:a.button.is-primary
+   {:href (rtfe/href :guestbook.routes.app/profile)}
+   login])
 
 (defn register-button []
   (r/with-let [fields (r/atom {})

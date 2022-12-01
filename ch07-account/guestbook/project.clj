@@ -42,7 +42,8 @@
                  [thheller/shadow-cljs "2.11.14" :scope "provided"]
                  [com.taoensso/sente "1.16.0"]
                  [org.postgresql/postgresql "42.2.18"]
-                 [buddy "2.0.0"]]
+                 [buddy "2.0.0"]
+                 [metosin/jsonista "0.3.1"]]
 
   :min-lein-version "2.0.0"
 

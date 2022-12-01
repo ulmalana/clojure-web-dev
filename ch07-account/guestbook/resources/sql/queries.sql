@@ -24,3 +24,15 @@ WHERE login = :login
 -- :doc selects all messages posted by a user
 select * from posts
  where author = :author
+
+-- :name set-profile-for-user* :<! :1
+-- :doc sets a profile map for the specified user
+update users
+set profile = :profile
+where :login = login
+returning *;
+
+-- :name get-user* :? :1
+-- :doc gets a user's publicly available info
+select login, created_at, profile from users
+where login = :login

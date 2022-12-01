@@ -30,4 +30,5 @@
    :account/register #{:any}
    :session/get #{:any}
    :messages/list #{:any}
-   :swagger/swagger #{:any}})
+   :swagger/swagger #{:any}
+   :account/set-profile! #{:authenticated}})
