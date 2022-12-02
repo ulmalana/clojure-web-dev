@@ -31,4 +31,6 @@
    :session/get #{:any}
    :messages/list #{:any}
    :swagger/swagger #{:any}
-   :account/set-profile! #{:authenticated}})
+   :account/set-profile! #{:authenticated}
+   :media/get #{:any}
+   :media/upload #{:authenticated}})

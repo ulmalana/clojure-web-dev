@@ -36,3 +36,18 @@ returning *;
 -- :doc gets a user's publicly available info
 select login, created_at, profile from users
 where login = :login
+
+-- :name save-file! :! :n
+-- saves a file to the database
+insert into media
+(name, type, owner, data)
+values (:name, :type, :owner, :data)
+on conflict (name) do update
+set type = :type,
+    data = :data
+where media.owner = :owner
+
+-- :name get-file :? :1
+-- gets a file from the database
+select * from media
+where name = :name
