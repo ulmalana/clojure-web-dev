@@ -7,7 +7,16 @@ RETURNING *;
 
 -- :name get-messages :? :*
 -- :doc selects all available messages
-SELECT * from posts
+SELECT
+  p.id as id,
+  p.timestamp as timestamp,
+  p.message as message,
+  p.name as name,
+  p.author as author,
+  a.profile->>'avatar' as avatar
+from posts as p join users as a
+on a.login = p.author
+
 
 -- :name create-user!* :! :n
 -- :doc creates a new user with the provided login and hashed password
@@ -17,13 +26,22 @@ VALUES (:login, :password)
 
 -- :name get-user-for-auth* :? :1
 -- :doc selects a user for authentication
-SELECT * FROM users
-WHERE login = :login
+select * from users
+ where login = :login
 
 -- :name get-messages-by-author :? :*
 -- :doc selects all messages posted by a user
-select * from posts
- where author = :author
+SELECT
+  p.id as id,
+  p.timestamp as timestamp,
+  p.message as message,
+  p.name as name,
+  p.author as author,
+  a.profile->>'avatar' as avatar
+FROM posts as p join users as a
+on a.login = p.author
+WHERE author = :author
+
 
 -- :name set-profile-for-user* :<! :1
 -- :doc sets a profile map for the specified user

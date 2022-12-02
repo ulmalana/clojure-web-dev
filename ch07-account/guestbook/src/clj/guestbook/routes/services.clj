@@ -66,7 +66,9 @@
            {:body {:messages [{:id pos-int?
                                :name string?
                                :message string?
-                               :timestamp inst?}]}}}
+                               :timestamp inst?
+                               :author (ds/maybe string?)
+                               :avatar (ds/maybe string?)}]}}}
           :handler
           (fn [_]
             (response/ok (msg/message-list)))}}]
@@ -78,7 +80,9 @@
         {:body {:messages [{:id pos-int?
                             :name string?
                             :message string?
-                            :timestamp inst?}]}}}
+                            :timestamp inst?
+                            :author (ds/maybe string?)
+                            :avatar (ds/maybe string?)}]}}}
        :handler
        (fn [{{{:keys [author]} :path} :parameters}]
          (response/ok (msg/messages-by-author author)))}}]]
@@ -86,8 +90,7 @@
     {::auth/roles (auth/roles :message/create!)
      :post {:parameters
             {:body ;; data spec for request body params
-             {:name string?
-              :message string?}}
+             {:message string?}}
             :responses
             {200
              {:body map?}

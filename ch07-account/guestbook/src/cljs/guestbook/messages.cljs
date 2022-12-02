@@ -3,7 +3,7 @@
             [reagent.core :as r]
             [re-frame.core :as rf]
             [guestbook.validation :refer [validate-message]]
-            [guestbook.components :as components]))
+            [guestbook.components :refer [text-input textarea-input image]]))
 
 (rf/reg-event-fx
  :messages/load-by-author
@@ -77,20 +77,26 @@
        "Loading messages"
        "Refresh messages")]))
 
+(defn message [{:keys [timestamp message name author avatar] :as m}]
+  [:article.media
+   [:figure.media-left
+    [image (or avatar "/img/avatar-default.png") 128 128]]
+   [:div.media-content>div.content
+    [:time (.toLocaleString timestamp)]
+    [:p message]
+    [:p " - " name
+     " <"
+     (if author
+       [:a {:href (str "/user/" author)} (str "@" author)]
+       [:span.is-italic "account not found"])
+     ">"]]])
+
 (defn message-list [messages]
   [:ul.messages
-   (for [{:keys [timestamp message name author]} @messages]
-     ^{:key timestamp}
+   (for [m @messages]
+     ^{:key (:timestamp m)}
      [:li
-      [:time (.toLocaleString timestamp)]
-      [:p message]
-      [:p " - " name
-       ;; add author
-       " <"
-       (if author
-         [:a {:href (str "/user/" author)} (str "@" author)]
-         [:span.is-italic "account not found"])
-       ">"]])])
+      [message m]])])
 
 (rf/reg-event-db
  :form/set-field
@@ -180,14 +186,12 @@
    [errors-component :unauthorized "Please log in before posting"]
    [:div.field
     [:label.label {:for :name} "Name"]
-    [errors-component :name]
-    [components/text-input {:attrs {:name :name}
-                 :value (rf/subscribe [:form/field :name])
-                 :on-save #(rf/dispatch [:form/set-field :name %])}]]
+    (let [{:keys [login profile]} @(rf/subscribe [:auth/user])]
+      (:display-name profile login))]
    [:div.field
     [:label.label {:for :message} "Message"]
     [errors-component :message]
-    [components/textarea-input {:attrs {:name :message}
+    [textarea-input {:attrs {:name :message}
                      :value (rf/subscribe [:form/field :message])
                      :on-save #(rf/dispatch [:form/set-field :message %])}]]
    [:input.button.is-primary
