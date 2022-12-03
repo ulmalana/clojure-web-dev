@@ -170,7 +170,8 @@
      :post {:handler
             (fn [_]
               (-> (response/ok)
-                  (assoc :session nil)))}}]
+                  ;;(assoc :session nil)
+                  (assoc :session {})))}}]
    ["/session"
     {::auth/roles (auth/roles :session/get)
      :get {:responses
