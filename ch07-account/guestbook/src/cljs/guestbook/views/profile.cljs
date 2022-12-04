@@ -2,7 +2,10 @@
   (:require [reagent.core :as r]
             [re-frame.core :as rf]
             [guestbook.components :refer [text-input textarea-input
-                                          image image-uploader]]))
+                                          image image-uploader]]
+            [ajax.core :as ajax]
+            [reitit.frontend.easy :as rtfe]
+            [guestbook.modals :as m]))
 
 (def profile-controllers
   [{:start (fn [_] (println "Entering profile page"))
@@ -162,6 +165,153 @@
         :on-click #(rf/dispatch [:profile/save-media k nil])}
        "Reset banner"]]]))
 
+
+(defn change-password []
+  (let [fields (r/atom {})
+        errors (r/atom {})
+        success (r/atom {})]
+    (letfn [(password-field [id label]
+              (r/with-let [v (r/cursor fields [id])
+                           e (r/cursor errors [id])]
+                [:div.field
+                 [:label.label {:for id} label]
+                 [:input.input {:id id
+                                :type :password
+                                :value @v
+                                :on-change #(reset! v (.. % -target -value))}]
+                 (when-let [message @e]
+                   [:p.help.is-danger message])]))
+            (change-password! []
+              (let [{:keys [new-password
+                            confirm-password]
+                     :as params} @fields]
+                (if (not= new-password confirm-password)
+                  (reset! errors
+                          {:new-password "new password and confirm must match"
+                           :confirm-password "new password and confirm must match"})
+                  (ajax/POST "/api/my-account/change-password"
+                             {:params params
+                              :handler
+                              (fn [_]
+                                ;;display success message for 5 s
+                                (swap! success
+                                       (fn [{:keys [timeout]}]
+                                         (when timeout
+                                           (js/clearTimeout timeout))
+                                         {:message "Password change successfull"
+                                          :timeout (js/setTimeout
+                                                    (fn []
+                                                      (reset! success {}))
+                                                    5000)}))
+                                (reset! fields {})
+                                (reset! errors {}))
+                              :error-handler
+                              (fn [{r :response}]
+                                (println r)
+                                (reset!
+                                 errors
+                                 (case (:error r)
+                                   :incorrect-password
+                                   {:old-password (:message r)}
+                                   :mismatch
+                                   {:new-password (:message r)
+                                    :confirm-password (:message r)}
+                                   ;; else
+                                   {:server
+                                    "unknown server error. please try again"})))}))))]
+      (fn []
+        [:<>
+         [:h3 "change password"]
+         [password-field :old-password "current password"]
+         [password-field :new-password "new password"]
+         [password-field :confirm-password "new password (confirm)"]
+         [:div.field
+          (when-let [message (:server @errors)]
+            [:p.message.is-danger message])
+          (when-let [message (:message @success)]
+            [:p.message.is-success message])
+          [:button.button
+           {:on-click (fn [_]
+                        (change-password!))}
+           "change password"]]]))))
+
+(defn delete-account [username]
+  (r/with-let [fields (r/atom {})
+               login (r/cursor fields [:login])
+               password (r/cursor fields [:password])
+               status (r/atom {})]
+    [:<>
+     [:h3 "delete account"]
+     [m/modal-button
+      ::delete-account
+      {:button {:class ["is-danger"]}}
+      "delete account"
+      [:section
+       [:div.message.is-danger
+        [:div.message-header (str "deleteing account " username)]
+        [:div.message-body "are you sure you wish to delete your account?"]]
+       (when-let [message (:error @status)]
+         [:div.message.is-danger>div.message-body message])
+       [:div.field.is-horizontal
+        [:div.field-label.is-normal>label.label {:for :login} "login"]
+        [:div.field-body>input.input
+         {:id :login
+          :autocomplete false
+          :value @login
+          :on-change #(reset! login (.. % -target -value))
+          :disabled (:loading @status)
+          :type :text}]]
+       [:div.field.is-horizontal
+        [:div.field-label.is-normal>label.label {:for :password} "password"]
+        [:div.field-body>input.input
+         {:id :password
+          :value @password
+          :disabled (:loading @status)
+          :on-change #(reset! password (.. % -target -value))
+          :type :password
+          :autocomplete false}]]]
+      [:div.field.is-grouped
+       [:p.control>button.button.is-light
+        {:disabled (:loading @status)
+         :on-click (fn [_]
+                     (reset! fields {})
+                     (reset! status {})
+                     (rf/dispatch [:app/hide-modal ::delete-account]))}
+        "cancel"]
+       [:p.control>button.button.is-danger
+        {:disabled (or (:loading @status) (empty? @login) (empty? @password))
+         :on-click
+         (fn [_]
+           (if (not= @login username)
+             (reset! status
+                     {:error
+                      (str "login must match current user: " username)})
+             (do
+               (reset! status {:loading true})
+               (ajax/POST "/api/my-account/delete-account"
+                          {:params @fields
+                           :handler
+                           (fn [_]
+                             (reset! status {})
+                             (reset! fields {})
+                             (rf/dispatch [:app/hide-modal ::delete-account])
+                             (rf/dispatch [:auth/handle-logout])
+                             (rtfe/push-state :guestbook.routes.app/home))
+                           :error-handler
+                           (fn [{r :response}]
+                             (if (= (:error r) :incorrect-password)
+                               (reset! status {:error
+                                               "incorrect password, please try again"})
+                               (reset! status {:error
+                                               "unknown error"})))}))))}
+        "delete account"]]]]))
+
+(defn account-settings []
+  [:<>
+   [:h2 "Account settings"]
+   [change-password]
+   [delete-account (:login @(rf/subscribe [:auth/user]))]])
+
 (defn profile [_]
   (if-let [{:keys [login created_at profile]} @(rf/subscribe [:auth/user])]
     [:div.content
@@ -185,8 +335,8 @@
                         @(rf/subscribe [:profile/profile])
                         @(rf/subscribe [:profile/media])])
          :disabled disabled?}
-      "update profile"])]
+        "update profile"])
+     [account-settings]]
     [:div.content
      [:div {:style {:width "100%"}}
       [:progress.progress.is-dark {:max 100} "30%"]]]))
-

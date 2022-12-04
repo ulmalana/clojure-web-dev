@@ -69,3 +69,12 @@ where media.owner = :owner
 -- gets a file from the database
 select * from media
 where name = :name
+
+-- :name set-password-for-user!* :! :n
+update users
+set password = :password
+where login = :login
+
+-- :name delete-user!* :! :n
+delete from users
+ where login = :login

@@ -200,6 +200,60 @@
            (fn [{{{:keys [login]} :path} :parameters}]
              (response/ok (author/get-author login)))}}]
    ["/my-account"
+    ["/delete-account"
+     {::auth/roles (auth/roles :account/set-profile!)
+      :post
+      {:parameters
+       {:body {:login string?
+               :password string?}}
+       :handler
+       (fn [{{{:keys [login password]} :body} :parameters
+             {{user :login} :identity} :session
+             :as req}]
+         (if (not= login user)
+           (response/bad-request
+            {:message "Login must match the current user!"})
+           (try
+             (auth/delete-account! user password)
+             (-> (response/ok)
+                 (assoc :session
+                        (select-keys
+                         (:session req)
+                         [:ring.middleware.anti-forgery/anti-forgery-token])))
+             (catch clojure.lang.ExceptionInfo e
+               (if (= (:guestbook/error-id (ex-data e))
+                      ::auth/authentication-failure)
+                 (response/unauthorized
+                  {:error :incorrect-password
+                   :message "Password is incorrect. try again."}))))))}}]
+    ["/change-password"
+     {::auth/roles (auth/roles :account/set-profile!)
+      :post {:parameters
+             {:body
+              {:old-password string?
+               :new-password string?
+               :confirm-password string?}}
+             :handler
+             (fn [{{{:keys [old-password
+                            new-password
+                            confirm-password]} :body} :parameters
+                   {:keys [identity]} :session}]
+               (if (not= new-password confirm-password)
+                 (response/bad-request
+                  {:error :mismatch
+                   :message "Password and confirm fields must match"})
+                 (try
+                   (auth/change-password! (:login identity)
+                                          old-password
+                                          new-password)
+                   (response/ok {:success true})
+                   (catch clojure.lang.ExceptionInfo e
+                     (if (= (:guestbook/error-id (ex-data e))
+                            ::auth/authentication-failure)
+                       (response/unauthorized
+                        {:error :incorrect-password
+                         :message "Old password is incorrect, please try again"})
+                       (throw e))))))}}]
     ["/set-profile"
      {::auth/roles (auth/roles :account/set-profile!)
       :post {:parameters

@@ -36,8 +36,12 @@
     [:section.modal-card-body body]
     [:footer.modal-card-foot footer]]])
 
-(defn modal-button [id title body footer]
-  [:div
-   [:button.button.is-primary
-    {:on-click #(rf/dispatch [:app/show-modal id])} title]
-   [modal-card id title body footer]])
+(defn modal-button
+  ([id title body footer]
+   [modal-button id {:button {:class ["is-primary"]}} title body footer])
+  ([id opts title body footer]
+   [:div
+    [:button.button
+     (merge (:button opts)
+            {:on-click #(rf/dispatch [:app/show-modal id])}) title]
+    [modal-card id title body footer]]))
