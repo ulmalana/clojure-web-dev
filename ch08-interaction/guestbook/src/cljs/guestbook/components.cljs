@@ -40,7 +40,7 @@
                :on-change (fn [e]
                             (let [v (.. e -target -value)]
                               (reset! draft v)
-                              (save-on-change)))
+                              (save-on-change v)))
                :value @value})])))
 
 (defn image [url width height]

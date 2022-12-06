@@ -89,6 +89,12 @@
        "Loading messages"
        "Refresh messages")]))
 
+(rf/reg-event-fx
+ :message/boost!
+ (fn [{:keys [db]} [_ message]]
+   {:ws/send!
+    {:message [:message/boost! (select-keys message [:id :poster])]}}))
+
 (defn message
   ([m] [message m {}])
   ([{:keys [id timestamp message name author avatar boosts is_boost]
@@ -106,18 +112,18 @@
                   :posted_at timestamp))]
      [:article.media
       [:figure.media-left
-       [image (or avatar "/img/avatar-default.png") 128 128]]
+       [image (or avatar "/api/media/avatar-default.png") 128 128]]
       [:div.media-content
        [:div.content
         (when is_boost
           [:div.columns.is-vcentered.is-1.mb-0
            [:div.column.is-narrow.pb-0
-            [image (or poster_avatar "/img/avatar-default.png") 24 24]]
+            [image (or poster_avatar "/api/media/avatar-default.png") 24 24]]
            [:div.column.is-narrow.pb-0
             [:a {:href (str "/user/" poster "?post=" id)} poster]]
            [:div.column.is-narrow.pb-0 "♻"]
            [:div.column.is-narrow.pb-0
-            [image (or source_avatar "/img/avatar-default.png") 24 24]]
+            [image (or source_avatar "/api/media/avatar-default.png") 24 24]]
            [:div.column.pb-0 #_{:style {:text-align "left"}}
             [:div.column.is-narrow.pb-0
              [:a {:href (str "/user/" source "?post=" id)} source]]]])

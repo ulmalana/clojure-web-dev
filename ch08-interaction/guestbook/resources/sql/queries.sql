@@ -65,7 +65,7 @@ delete from users
 -- :name get-message :? :1
 -- :doc selects a message
 select * from posts_with_meta
- where p.id = :id
+ where id = :id
 
 -- :name boost-post! :! :n
 -- boost a post or moves a boost to the top of timeline
@@ -112,15 +112,15 @@ select b.user_id, b.poster
 from post_boosts b inner join reboosts r on r.poster = b.user_id)
 select user_id as user, poster as source from reboosts
 
-  -- :name get-timeline :? :*
-  -- gets the latest post or boost for each post
+-- :name get-timeline :? :*
+-- gets the latest post or boost for each post
 select * from
 (select distinct on (p.id) * from posts_and_boosts as p
 order by p.id, p.posted_at desc) as t
  order by t.posted_at asc
 
-  -- :name get-timeline-for-poster :? :*
-  -- get the latest post or boost for each post
+-- :name get-timeline-for-poster :? :*
+-- get the latest post or boost for each post
 select * from
 (select distinct on (p.id) * from posts_and_boosts as p
 where p.poster = :poster
