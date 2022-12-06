@@ -59,7 +59,8 @@
     ["/swagger-ui*" {:get (swagger-ui/create-swagger-ui-handler
                            {:url "/api/swagger.json"})}]]
    ["/messages"
-    {::auth/roles (auth/roles :messages/list)}
+    {::auth/roles (auth/roles :messages/list)
+     :parameters {:query {(ds/opt :boosts) boolean?}}}
     ["" {:get
          {:responses
           {200
@@ -70,8 +71,11 @@
                                :author (ds/maybe string?)
                                :avatar (ds/maybe string?)}]}}}
           :handler
-          (fn [_]
-            (response/ok (msg/message-list)))}}]
+          (fn [{{{:keys [boosts]
+                  :or {boosts true}} :query} :parameters}]
+            (response/ok (if boosts
+                           (msg/timeline)
+                           (msg/message-list))))}}]
     ["/by/:author"
      {:get
       {:parameters {:path {:author string?}}
@@ -84,25 +88,52 @@
                             :author (ds/maybe string?)
                             :avatar (ds/maybe string?)}]}}}
        :handler
-       (fn [{{{:keys [author]} :path} :parameters}]
-         (response/ok (msg/messages-by-author author)))}}]]
+       (fn [{{{:keys [author]} :path
+              {:keys [boosts]
+               :or {boosts true}} :query} :parameters}]
+         (response/ok (if boosts
+                        (msg/timeline-for-poster author)
+                        (msg/messages-by-author author))))}}]]
    ["/message"
     ["/:post-id"
-     {::auth/roles (auth/roles :message/get)
-      :get {:parameters
-            {:path {:post-id pos-int?}}
-            :responses
-            {200 {:message map?}
-             403 {:message string?}
-             404 {:message string?}
-             500 {:message string?}}
-            :handler
-            (fn [{{{:keys [post-id]} :path} :parameters}]
-              (if-some [post (msg/get-message post-id)]
-                (response/ok
-                 {:message post})
-                (response/not-found
-                 {:message "Post not found"})))}}]
+     {:parameters
+      {:path
+       {:post-id pos-int?}}}
+     [""
+      {::auth/roles (auth/roles :message/get)
+       :get {:parameters
+             {:path {:post-id pos-int?}}
+             :responses
+             {200 {:message map?}
+              403 {:message string?}
+              404 {:message string?}
+              500 {:message string?}}
+             :handler
+             (fn [{{{:keys [post-id]} :path} :parameters}]
+               (if-some [post (msg/get-message post-id)]
+                 (response/ok
+                  {:message post})
+                 (response/not-found
+                  {:message "Post not found"})))}}]
+     ["/boost"
+      {::auth/roles (auth/roles :message/boost!)
+       :post {:parameters {:body {:poster (ds/maybe string?)}}
+              :responses
+              {200 {:body map?}
+               400 {:message string?}}
+              :handler
+              (fn [{{{:keys [post-id]} :path
+                     {:keys [poster]} :body} :parameters
+                    {:keys [identity]} :session}]
+                (try
+                  (let [post (msg/boost-message identity post-id poster)]
+                    (response/ok {:status :ok
+                                  :post post}))
+                  (catch Exception e
+                    (response/bad-request
+                     {:message
+                      (str "could not boost message: " post-id
+                           " as " (:login identity))}))))}}]]
     [""
      {::auth/roles (auth/roles :message/create!)
       :post {:parameters

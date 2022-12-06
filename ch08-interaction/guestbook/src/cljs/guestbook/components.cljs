@@ -23,9 +23,13 @@
 
 (defn textarea-input [{val :value
                        attrs :attrs
+                       ms :save-timeout
                        :keys [on-save]}]
   (let [draft (r/atom nil)
-        value (r/track #(or @draft @val ""))]
+        value (r/track #(or @draft @val ""))
+        save-on-change (if ms
+                         (gf/debounce on-save ms)
+                         (fn [& _]))]
     (fn []
       [:textarea.textarea
        (merge attrs
@@ -33,7 +37,10 @@
                :on-blur (fn []
                           (on-save (or @draft ""))
                           (reset! draft nil))
-               :on-change #(reset! draft (.. % -target -value))
+               :on-change (fn [e]
+                            (let [v (.. e -target -value)]
+                              (reset! draft v)
+                              (save-on-change)))
                :value @value})])))
 
 (defn image [url width height]
