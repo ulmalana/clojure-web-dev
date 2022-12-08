@@ -24,31 +24,30 @@
      (send! message timeout #(rf/dispatch (conj callback-event %)))
      (send! message))))
 
+(rf/reg-event-db
+ :ws/set-message-add-handler
+ (fn [db [_ ev]]
+   (if ev
+     (assoc db :ws/message-add-handler ev)
+     (dissoc db :ws/message-add-handler))))
+
+(rf/reg-sub
+ :ws/message-add-handler
+ (fn [db _]
+   (:ws/message-add-handler db)))
+
+
 (defonce channel (atom nil))
-
-;; (defn connect! [url receive-handler]
-;;   (if-let [chan (js/WebSocket. url)]
-;;     (do
-;;       (.log js/console "Connected")
-;;       (set! (.-onmessage chan) #(->> %
-;;                                      .-data
-;;                                      edn/read-string
-;;                                      receive-handler))
-;;       (reset! channel chan))
-;;     (throw (ex-info "WebSocket connection failed" {:url url}))))
-
-;; (defn send-message! [msg]
-;;   (if-let [chan @channel]
-;;     (.send chan (pr-str msg))
-;;     (throw (ex-info "Couldnt send message, channel isnt open" {:message msg}))))
 
 (defmulti handle-message
   (fn [{:keys [id]} _]
     id))
 
 (defmethod handle-message :message/add
-  [_ msg-add-event]
-  (rf/dispatch msg-add-event))
+  [_ [_ msg :as msg-add-event]]
+  (if-some [ev @(rf/subscribe [:ws/message-add-handler])]
+    (rf/dispatch (conj ev msg))
+    (rf/dispatch msg-add-event)))
 
 (defmethod handle-message :message/creation-errors
   [_ [_ response]]

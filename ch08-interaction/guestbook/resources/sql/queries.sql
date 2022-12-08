@@ -65,6 +65,8 @@ delete from users
 -- :name get-message :? :1
 -- :doc selects a message
 select * from posts_with_meta
+inner join (select id, parent from posts) as p using (id)
+inner join reply_count using (id)
  where id = :id
 
 -- :name boost-post! :! :n
@@ -135,3 +137,23 @@ select * from posts_and_boosts
    and id = :post
  order by posted_at asc
  limit 1
+
+-- :name get-replies :? :*
+select * from posts_with_meta
+              inner join (select id, parent from posts) as p using (id)
+              inner join reply_count using (id)
+ where id in (select id from posts
+               where parent = :id)
+
+-- :name get-parents
+select * from posts_with_meta
+              inner join (select id, parent from posts) as p using (id)
+              inner join reply_count using (id)
+ where id in (with recursive parents as
+                  (select id, parent from posts
+                    where id = :id
+                          union
+                   select p.id, p.parent from posts p
+                                              inner join parents pp
+                                                  on p.id = pp.parent)
+ select id from parents)
