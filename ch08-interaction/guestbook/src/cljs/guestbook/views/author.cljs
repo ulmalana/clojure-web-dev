@@ -1,7 +1,8 @@
 (ns guestbook.views.author
   (:require [re-frame.core :as rf]
             [guestbook.messages :as messages]
-            [reitit.frontend.easy :as rtfe]))
+            [reitit.frontend.easy :as rtfe]
+            [guestbook.subscriptions :as sub]))
 
 (rf/reg-event-fx
  ::fetch-author
@@ -82,6 +83,7 @@
          [:div.content>div.columns.is-centered>div.column.is-two-thirds
           [:div.columns>div.column
            [:h3 "Post By " display-name " <@" user ">"]
+           [sub/subscribe-button :follows user]
            (if @(rf/subscribe [:messages/loading?])
              [messages/message-list-placeholder]
              [messages/message-list messages post])]

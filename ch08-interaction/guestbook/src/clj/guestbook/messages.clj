@@ -54,3 +54,18 @@
 
 (defn get-parents [id]
   (db/get-parents {:id id}))
+
+(defn get-feed-for-tag [tag]
+  {:messages
+   (db/get-feed-for-tag {:tag tag})})
+
+(defn get-feed [feed-map]
+  (when-not (every? #(re-matches #"[-\w]+" %) (:tags feed-map))
+    (throw
+     (ex-info
+      "tags must only contain alphanumeric chars, dashes, or underscores"
+      feed-map)))
+  {:messages
+   (db/get-feed (merge {:follows []
+                        :tags []}
+                       feed-map))})

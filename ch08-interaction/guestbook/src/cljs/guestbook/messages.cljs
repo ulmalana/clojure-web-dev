@@ -8,6 +8,31 @@
             [reitit.frontend.easy :as rtfe]
             [guestbook.modals :as modals]))
 
+(rf/reg-event-fx
+ :messages/load-feed
+ (fn [{:keys [db]} _]
+   (let [{:keys [follows tags]}
+         (get-in db [:auth/user :profile :subscriptions])]
+     {:db (assoc db
+                 :messages/loading? true
+                 :messages/list nil
+                 :messages/filter
+                 [{:message
+                   #(some
+                     (fn [tag]
+                       (re-find
+                        (re-pattern (str "(?<=\\s|^)#" tag "(?=\\s|$)"))
+                        %))
+                     tags)}
+                  {:poster
+                   #(some
+                     (partial = %)
+                     follows)}])
+      :ajax/get {:url "/api/messages/feed"
+                 :success-path [:messages]
+                 :success-event [:messages/set]}})))
+
+
 (rf/reg-event-db
  :app/hide-reply-modals
  (fn [db _]
@@ -25,6 +50,20 @@
                :messages/filter {:poster author}
                :messages/list nil)
     :ajax/get {:url (str "/api/messages/by/" author)
+               :success-path [:messages]
+               :success-event [:messages/set]}}))
+
+(rf/reg-event-fx
+ :messages/load-by-tag
+ (fn [{:keys [db]} [_ tag]]
+   {:db (assoc db
+               :messages/loading? true
+               :messages/filter
+               {:message #(re-find
+                           (re-pattern (str "(?<=\\s|^)#" tag "(?=\\s|$)"))
+                           %)}
+               :messages/list nil)
+    :ajax/get {:url (str "/api/messages/tagged/" tag)
                :success-path [:messages]
                :success-event [:messages/set]}}))
 
@@ -85,9 +124,13 @@
 (rf/reg-event-db
  :message/add
  (fn [db [_ message]]
-   (if (add-message? (:messages/filter db) message)
-     (update db :messages/list conj message)
-     db)))
+   (let [msg-filter (:messages/filter db)
+         filters (if (map? msg-filter)
+                   [msg-filter]
+                   msg-filter)]
+     (if (some #(add-message? % message) filters)
+       (update db :messages/list conj message)
+       db))))
 
 (defn reload-messages-button []
   (let [loading? (rf/subscribe [:messages/loading?])]

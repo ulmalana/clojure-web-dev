@@ -157,3 +157,39 @@ select * from posts_with_meta
                                               inner join parents pp
                                                   on p.id = pp.parent)
  select id from parents)
+
+-- :name get-feed-for-tag :? :*
+-- :require [guestbook.db.util :refer [tag-regex]]
+-- given a tag, return its feed
+select * from
+           (select distinct on (p.id) * from posts_and_boosts as p
+             where
+             /*~ (if (:tag params) */
+               p.message ~*
+               /*~*/
+               false
+               /*~ ) ~*/
+               --~ (when (:tag params) (tag-regex (:tag params)))
+             order by p.id, posted_at desc) as t
+ order by t.posted_at asc
+
+-- :name get-feed :? :*
+-- :require [guestbook.db.util :refer [tags-regex]]
+-- given a vector of follows and a vector of tags, return a feed
+select * from
+           (select distinct on (p.id) * from posts_and_boosts as p
+             where
+             /*~ (if (seq (:follows params)) */
+               p.poster in (:v*:follows)
+               /*~*/
+               false
+               /*~ ) ~*/
+                or
+                /*~ (if (seq (:tags params)) */
+               p.message ~*
+               /*~*/
+               false
+               /*~ ) ~*/
+               --~ (when (seq (:tags params)) (tags-regex (:tags params)))
+             order by p.id, posted_at desc) as t
+ order by t.posted_at asc

@@ -36,7 +36,8 @@
    :media/get #{:any}
    :media/upload #{:authenticated}
    :message/get #{:any}
-   :message/boost! #{:authenticated}})
+   :message/boost! #{:authenticated}
+   :messages/feed #{:authenticated}})
 
 (defn change-password! [login old-password new-password]
   (jdbc/with-transaction [t-conn db/*db*]

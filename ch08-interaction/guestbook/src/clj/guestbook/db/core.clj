@@ -7,7 +7,8 @@
     [guestbook.config :refer [env]]
     [java-time :refer [java-date]]
     [next.jdbc.prepare]
-    [jsonista.core :as json])
+    [jsonista.core :as json]
+    [guestbook.db.util])
   (:import org.postgresql.util.PGobject
            clojure.lang.IPersistentMap
            clojure.lang.IPersistentVector))
