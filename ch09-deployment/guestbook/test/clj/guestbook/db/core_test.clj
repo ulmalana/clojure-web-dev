@@ -29,3 +29,13 @@
            (-> (db/get-messages t-conn {})
                (first)
                (select-keys [:name :message]))))))
+
+(deftest test-users
+  (jdbc/with-transaction [t-conn *db* {:rollback-only true}]
+    (is (= 1 (db/create-user!* t-conn
+                               {:login "foo"
+                                :password "password"})))
+    (is (= {:login "foo"
+            :profile {}}
+           (dissoc (db/get-user* t-conn
+                                 {:login "foo"}) :created_at)))))
